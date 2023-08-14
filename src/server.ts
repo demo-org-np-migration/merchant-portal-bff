@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import { logger } from '@cauri/commons';
 import { config } from './config';
+import { registerMetrics } from './metrics';
 
 const log = logger(config.serviceName, config.env);
 
@@ -8,6 +9,7 @@ export function buildServer() {
   const app = Fastify({ logger: false });
 
   app.get('/health', async () => ({ status: 'ok' }));
+  registerMetrics(app);
 
   return app;
 }
