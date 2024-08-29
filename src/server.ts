@@ -4,6 +4,7 @@ import { config } from './config';
 import { auth } from './auth';
 import { registerMetrics } from './metrics';
 import dashboardRoutes from './routes/dashboard';
+import chargesRoutes from './routes/charges';
 
 const log = logger(config.serviceName, config.env);
 
@@ -15,12 +16,14 @@ export function buildServer() {
 
   // @cauri/commons@1.2.1: el hook onRequest de auth.fastify() se registra en el scope
   // que lo llama (acá, "secured"), no en un hijo propio del plugin de auth, así que
-  // alcanza a dashboardRoutes por ser su hermano dentro de "secured". Por la misma
-  // razón NO lo registramos directo en `app`: el hook se colaría también a /health y
-  // /metrics.
+  // alcanza a dashboardRoutes y chargesRoutes por ser hermanos suyos dentro de
+  // "secured" (antes de 1.2.1 el hook quedaba atrapado adentro del plugin de auth y
+  // las rutas de /merchant quedaban sin proteger). Por la misma razón NO los
+  // registramos directo en `app`: el hook se colaría también a /health y /metrics.
   app.register(async (secured) => {
     await secured.register(auth.fastify());
     await secured.register(dashboardRoutes);
+    await secured.register(chargesRoutes);
   });
 
   app.setErrorHandler((error, _request, reply) => {
