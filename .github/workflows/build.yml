@@ -40,7 +40,6 @@ jobs:
         id: tag
         run: echo "sha_tag=sha-$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
@@ -50,8 +49,32 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # En un tag v*, la imagen de ese commit ya la construyó main: se promueve (mismo digest, se le agrega el tag v*)
+      # en vez de reconstruirla. Así staging y prod corren exactamente la misma imagen y el tag sha-<commit> no cambia.
+      # Si el commit nunca se construyó en main, se construye acá como siempre.
+      - name: Promote the image built on main (tag)
+        id: promote
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          SHA_TAG: ${{ steps.tag.outputs.sha_tag }}
+        run: |
+          if docker buildx imagetools inspect "$IMAGE:$SHA_TAG" --format '{{json .Manifest}}' > manifest.json 2>/dev/null; then
+            digest=$(jq -r '.digest' manifest.json)
+            docker buildx imagetools create -t "$IMAGE:$GITHUB_REF_NAME" "$IMAGE@$digest"
+            echo "promoted=true" >> "$GITHUB_OUTPUT"
+            echo "digest=$digest" >> "$GITHUB_OUTPUT"
+            echo "Promovida $IMAGE@$digest como $GITHUB_REF_NAME"
+          else
+            echo "promoted=false" >> "$GITHUB_OUTPUT"
+            echo "$IMAGE:$SHA_TAG no existe: se construye"
+          fi
+
+      - uses: docker/setup-qemu-action@v3
+        if: steps.promote.outputs.promoted != 'true'
+
       - name: Build and push
         id: build
+        if: steps.promote.outputs.promoted != 'true'
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
@@ -70,7 +93,7 @@ jobs:
             --argjson build_id "${{ steps.np_build.outputs.id }}" \
             --argjson application_id "${{ steps.np_build.outputs.application_id }}" \
             --arg url "${{ env.IMAGE }}:${{ steps.tag.outputs.sha_tag }}" \
-            --arg digest "${{ steps.build.outputs.digest }}" \
+            --arg digest "${{ steps.promote.outputs.digest || steps.build.outputs.digest }}" \
             '{build_id: $build_id, application_id: $application_id, name: "main", type: "docker-image", url: $url, metadata: {digest: $digest}}' > asset.json
           np asset create --body asset.json
 
