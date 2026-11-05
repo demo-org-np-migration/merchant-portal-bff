@@ -108,3 +108,5 @@ Usamos `@cauri/commons` (`v1.2.1`) para logger, auth de JWT (`createJwtAuth`, ro
 (`serviceTokenProvider`) y el cliente HTTP con reintentos (`httpClient`). El `/metrics`
 lo servimos nosotros a mano con el `registry` de `metrics()`: su `handler()` es para
 Express, no para Fastify.
+
+> Los deploys de esta app se ven en nullplatform (scopes `staging` y `prod`, modo observado).
