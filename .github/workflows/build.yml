@@ -104,6 +104,10 @@ jobs:
 
   update-gitops-staging:
     needs: build-and-push
+    # nullplatform: el environment tiene una regla de protección de la GitHub App de nullplatform. GitHub pausa
+    # este job (sin ocupar runner) hasta que nullplatform aprueba el deploy con su checklist; si lo rechaza, el job
+    # falla y gitops no cambia.
+    environment: staging
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
@@ -133,6 +137,10 @@ jobs:
           done
   update-gitops-prod:
     needs: build-and-push
+    # nullplatform: el environment tiene una regla de protección de la GitHub App de nullplatform. GitHub pausa
+    # este job (sin ocupar runner) hasta que nullplatform aprueba el deploy con su checklist; si lo rechaza, el job
+    # falla y gitops no cambia.
+    environment: production
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
