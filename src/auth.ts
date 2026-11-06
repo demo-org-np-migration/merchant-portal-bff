@@ -6,3 +6,15 @@ import { config } from './config';
 // en `request.user.merchant_id` (AuthUser lo tipa como opcional porque la lib es la
 // misma para todos los servicios; acá siempre esperamos que venga).
 export const auth = createJwtAuth({ issuer: config.keycloakIssuer });
+
+// Autorización: además del rol `merchant`, toda ruta de comercio exige el claim `merchant_id` en el token.
+// Un token sin ese claim es un token mal emitido para este client: se rechaza con 403 antes de entrar a la
+// ruta (antes cada ruta lo chequeaba por su cuenta y respondía 400).
+export const requireMerchant = async (
+  request: import('fastify').FastifyRequest,
+  reply: import('fastify').FastifyReply,
+) => {
+  if (!request.user?.merchant_id) {
+    return reply.code(403).send({ error: { code: 'forbidden', message: 'token has no merchant_id claim' } });
+  }
+};

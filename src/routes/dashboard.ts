@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { logger } from '@cauri/commons';
 import { config } from '../config';
-import { auth } from '../auth';
+import { auth, requireMerchant } from '../auth';
 import { getMerchant, listPaymentsByAccount } from '../clients/payments';
 import { getAccount } from '../clients/accounts';
 
@@ -17,7 +17,7 @@ function errorBody(code: string, message: string) {
 const dashboardRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   app.get(
     '/merchant/dashboard',
-    { preHandler: auth.requireRole('merchant') },
+    { preHandler: [auth.requireRole('merchant'), requireMerchant] },
     async (request, reply) => {
       const merchantId = request.user?.merchant_id;
       if (!merchantId) {
