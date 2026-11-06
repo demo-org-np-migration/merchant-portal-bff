@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { logger } from '@cauri/commons';
 import { config } from '../config';
-import { auth } from '../auth';
+import { auth, requireMerchant } from '../auth';
 import { createCharge } from '../clients/payments';
 
 const log = logger(config.serviceName, config.env);
@@ -22,7 +22,7 @@ interface CreateChargeRequestBody {
 const chargesRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   app.post<{ Body: CreateChargeRequestBody }>(
     '/merchant/charges',
-    { preHandler: auth.requireRole('merchant') },
+    { preHandler: [auth.requireRole('merchant'), requireMerchant] },
     async (request, reply) => {
       const merchantId = request.user?.merchant_id;
       if (!merchantId) {

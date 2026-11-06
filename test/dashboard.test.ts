@@ -68,6 +68,21 @@ describe('merchant-portal-bff', () => {
   });
 
   describe('GET /merchant/dashboard', () => {
+    it('un token sin merchant_id recibe 403 antes de entrar a la ruta', async () => {
+      const app = buildServer();
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/merchant/dashboard',
+        headers: { 'x-test-user': JSON.stringify({ sub: 'sin-comercio', roles: ['merchant'] }) },
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(response.json()).toEqual({ error: { code: 'forbidden', message: 'token has no merchant_id claim' } });
+
+      await app.close();
+    });
+
     it('agrega merchant, cuenta y últimos cobros usando el merchant_id del token', async () => {
       const merchant = {
         id: 'merchant-1',
