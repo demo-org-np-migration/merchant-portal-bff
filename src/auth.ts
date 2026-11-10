@@ -14,7 +14,9 @@ export const requireMerchant = async (
   request: import('fastify').FastifyRequest,
   reply: import('fastify').FastifyReply,
 ) => {
-  if (!request.user?.merchant_id) {
+  // Un claim vacío o en blanco tampoco identifica a un comercio: se rechaza igual que uno ausente.
+  const merchantId = request.user?.merchant_id;
+  if (!merchantId || !String(merchantId).trim()) {
     return reply.code(403).send({ error: { code: 'forbidden', message: 'token has no merchant_id claim' } });
   }
 };
